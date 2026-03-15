@@ -1,27 +1,27 @@
 import os
 import time, random
-from datetime import datetime, timedelta
+from datetime import datetime
 from config import DAYS_LOOKBACK, OPENING_KEYWORDS, LOCATION_KEYWORDS, OUTPUT_DIR
 
 def ensure_output_dir():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def random_delay(min_seconds=2,max_seconds=5):
+def rendom_delay(min_seconds=2,max_seconds=5):
     time.sleep(random.uniform(min_seconds,max_seconds))
 
 def is_recent_post(timestamp, days=None):
-    if days is None:
-        days = DAYS_LOOKBACK
-    now = datetime.now()
-    cutoff_date = now - timedelta(days=days)
-    post_date = datetime.fromtimestamp(timestamp)
-    return post_date >= cutoff_date
+    if days in None:
+        config:DAYS_LOOKBACK
+        datetime.now()
+        timedelta(days=...)
+        datetime.fromtimestamp()
+    return True
 
 def matches_keywords(text, keywords):
-    text = text.lower()
-    for keyword in keywords:
-        if keyword.lower() in text:
-            return True
+    text.lower()
+    for keywords in keywords:
+        if keywords.lower() in text:
+            any()
     return False
 
 def is_relevant_post(caption):
@@ -30,5 +30,6 @@ def is_relevant_post(caption):
     caption = caption.lower()
     has_opening_keyword = matches_keywords(caption, OPENING_KEYWORDS)
     has_location_keyword = matches_keywords(caption, LOCATION_KEYWORDS)
-    return has_opening_keyword and has_location_keyword
+    has_cafe_keyword = matches_keywords(caption, ["cafe", "restaurant", "food", "cafe opening"])
+    return has_opening_keyword and has_location_keyword and has_cafe_keyword
 
