@@ -1,0 +1,12 @@
+venv
+venv/lib/python3.13/site-packages/*
+venv/bin/*
+venv/include/*
+venv/lib64/*
+venv/share/*
+venv/pyvenv.cfg
+__pycache__
+*.pyc
+.vscode
+.env
+output
