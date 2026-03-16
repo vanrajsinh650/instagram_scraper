@@ -52,6 +52,10 @@ REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", 15))
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "output")
 OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "new_cafe_ahmedabad.xlsx")
 
+# Playwright Browser Configuration
+HEADLESS = os.environ.get("HEADLESS", "false").lower() == "true"
+AUTH_STATE_PATH = os.environ.get("AUTH_STATE_PATH", "state.json")
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
