@@ -18,7 +18,7 @@ def main():
     setup_logging()
     logger = logging.getLogger(__name__)
 
-    logger.info("Starting Instagram Cafe Scraper pipeline...")
+    logger.info("Starting Ahmedabad Cafe Scraper...")
 
     try:
         ensure_output_dir()
@@ -26,7 +26,7 @@ def main():
         scraper = InstagramScraper()
         results = scraper.run()
 
-        logger.info("Collected %d enriched results. Saving to Excel...", len(results))
+        logger.info("Collected %d results. Saving to Excel...", len(results))
 
         filepath = os.path.join(OUTPUT_DIR, OUTPUT_FILE)
         save_to_excel(results, filepath)
@@ -34,9 +34,9 @@ def main():
         logger.info("Pipeline completed successfully.")
 
     except KeyboardInterrupt:
-        logger.info("Pipeline interrupted by user. Exiting gracefully.")
+        logger.info("Interrupted by user.")
     except Exception as e:
-        logger.exception("Pipeline failed with unexpected error: %s", e)
+        logger.exception("Pipeline failed: %s", e)
 
 
 if __name__ == "__main__":

@@ -26,16 +26,19 @@ def is_recent_post(timestamp, days=None):
     if isinstance(timestamp, str) and not timestamp.isdigit():
         return False
 
-    post_date = datetime.fromtimestamp(int(timestamp))
-    return post_date >= cutoff_date
+    try:
+        post_date = datetime.fromtimestamp(int(timestamp))
+        return post_date >= cutoff_date
+    except (ValueError, OSError):
+        return False
 
 
 def matches_keywords(text, keywords):
     if not text:
         return False
-    text = text.lower()
-    for keyword in keywords:
-        if keyword.lower() in text:
+    text_lower = text.lower()
+    for kw in keywords:
+        if kw.lower() in text_lower:
             return True
     return False
 
@@ -43,36 +46,38 @@ def matches_keywords(text, keywords):
 def is_relevant_post(caption):
     if not caption:
         return False
+    # only require opening/cafe keywords — location is implicit from hashtags
+    return matches_keywords(caption, OPENING_KEYWORDS)
 
-    caption_lower = caption.lower()
-    has_opening_keyword = matches_keywords(caption_lower, OPENING_KEYWORDS)
-    has_location_keyword = matches_keywords(caption_lower, LOCATION_KEYWORDS)
-    return has_opening_keyword and has_location_keyword
+
+def is_relevant_post_strict(caption):
+    if not caption:
+        return False
+    return matches_keywords(caption, OPENING_KEYWORDS) and matches_keywords(caption, LOCATION_KEYWORDS)
 
 
 def extract_emails(text):
     if not text:
         return []
-    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-    return list(set(re.findall(email_pattern, text)))
+    pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    return list(set(re.findall(pattern, text)))
 
 
 def extract_phones(text):
     if not text:
         return []
 
-    phone_pattern = r'(?:(?:\+|0{0,2})91[\s-]?)?[789]\d{9}'
-    raw_phones = re.findall(phone_pattern, text)
+    pattern = r'(?:(?:\+|0{0,2})91[\s-]?)?[789]\d{9}'
+    raw = re.findall(pattern, text)
 
-    clean_phones = []
-    for p in raw_phones:
-        clean_num = re.sub(r'\D', '', p)
-        if len(clean_num) > 10:
-            clean_num = clean_num[-10:]
-        if len(clean_num) == 10:
-            clean_phones.append(clean_num)
-
-    return list(set(clean_phones))
+    clean = []
+    for p in raw:
+        num = re.sub(r'\D', '', p)
+        if len(num) > 10:
+            num = num[-10:]
+        if len(num) == 10:
+            clean.append(num)
+    return list(set(clean))
 
 
 def extract_cafe_name(caption, username=None):
@@ -81,37 +86,45 @@ def extract_cafe_name(caption, username=None):
 
     lines = caption.strip().split("\n")
 
-    # Strategy 1: look for text between quotes or 'at' markers
     at_match = re.search(r'(?:@|at\s+|welcome\s+to\s+|introducing\s+)([A-Z][A-Za-z0-9\s&\'-]{2,30})', caption)
     if at_match:
         name = at_match.group(1).strip()
         if len(name) > 2 and not name.lower().startswith(("http", "www")):
             return name
 
-    # Strategy 2: look for quoted names
     quote_match = re.search(r'["\u201c]([A-Za-z0-9\s&\'-]{2,40})["\u201d]', caption)
     if quote_match:
         return quote_match.group(1).strip()
 
-    # Strategy 3: first line is often the cafe name if short and title-cased
     first_line = lines[0].strip()
-    # Remove common emoji/hashtag noise from start
     first_line_clean = re.sub(r'^[\U00010000-\U0010ffff\s\u2600-\u27bf]+', '', first_line, flags=re.UNICODE).strip()
     if 2 < len(first_line_clean) < 40 and not first_line_clean.startswith(("#", "http")):
         word_count = len(first_line_clean.split())
         if word_count <= 6:
             return first_line_clean
 
-    # Strategy 4: look for "Cafe X" or "X Cafe" patterns
-    cafe_pattern = re.search(
+    cafe_match = re.search(
         r'((?:[A-Z][a-z]+\s+){0,3}(?:cafe|restaurant|bistro|kitchen|eatery|lounge|bar|brewery|bakery)(?:\s+[A-Z][a-z]+){0,2})',
-        caption,
-        re.IGNORECASE
+        caption, re.IGNORECASE
     )
-    if cafe_pattern:
-        return cafe_pattern.group(1).strip()
+    if cafe_match:
+        return cafe_match.group(1).strip()
 
     return username or ""
+
+
+def extract_address(text):
+    if not text:
+        return ""
+    pin_match = re.search(r'(.{10,80}380\d{3}.{0,30})', text)
+    if pin_match:
+        addr = re.sub(r'\s+', ' ', pin_match.group(1).strip())
+        return addr[:150]
+
+    addr_match = re.search(r'(?:address|location|located at)[:\s]+(.{10,120})', text, re.IGNORECASE)
+    if addr_match:
+        return addr_match.group(1).strip().split('\n')[0][:150]
+    return ""
 
 
 def clean_text(text, max_length=500):

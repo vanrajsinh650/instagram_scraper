@@ -71,6 +71,17 @@ OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "new_cafe_ahmedabad.xlsx")
 HEADLESS = os.environ.get("HEADLESS", "false").lower() == "true"
 AUTH_STATE_PATH = os.environ.get("AUTH_STATE_PATH", "state.json")
 
+WEB_SEARCH_QUERIES = _parse_list_env("WEB_SEARCH_QUERIES", [
+    "new cafe opening ahmedabad 2025",
+    "upcoming cafe ahmedabad 2025",
+    "new restaurant opening ahmedabad",
+    "cafe grand opening ahmedabad",
+    "newly opened cafe ahmedabad",
+    "best new cafe ahmedabad",
+])
+
+MAX_WEB_RESULTS = int(os.environ.get("MAX_WEB_RESULTS", 10))
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

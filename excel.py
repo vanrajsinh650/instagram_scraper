@@ -6,15 +6,17 @@ logger = logging.getLogger(__name__)
 
 
 def save_to_excel(results, filepath):
+    columns = [
+        "Cafe Name", "Phone", "Email", "Address", "Username",
+        "Source", "URL", "Website/Link", "Datetime", "Caption", "Bio"
+    ]
+
     if not results:
         logger.warning("No results to save.")
-        df = pd.DataFrame(columns=[
-            "Cafe Name", "Phone", "Email", "URL", "Username", "Source", "Datetime", "Caption"
-        ])
+        df = pd.DataFrame(columns=columns)
         with pd.ExcelWriter(filepath, engine="xlsxwriter") as writer:
             df.to_excel(writer, sheet_name="Data", index=False)
-            summary_df = pd.DataFrame([{"Total Results": 0}])
-            summary_df.to_excel(writer, sheet_name="Summary", index=False)
+            pd.DataFrame([{"Total Results": 0}]).to_excel(writer, sheet_name="Summary", index=False)
         return False
 
     try:
@@ -24,112 +26,72 @@ def save_to_excel(results, filepath):
             "cafe_name": "Cafe Name",
             "phone": "Phone",
             "email": "Email",
+            "address": "Address",
             "url": "URL",
             "username": "Username",
             "timestamp": "Timestamp",
             "caption": "Caption",
             "source": "Source",
             "bio": "Bio",
+            "external_link": "Website/Link",
         }
         df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns}, inplace=True)
 
         if "Timestamp" in df.columns:
             if pd.api.types.is_numeric_dtype(df["Timestamp"]):
-                df["Datetime"] = pd.to_datetime(df["Timestamp"], unit="s")
+                df["Datetime"] = pd.to_datetime(df["Timestamp"], unit="s", errors="coerce")
             else:
-                df["Datetime"] = df["Timestamp"]
+                df["Datetime"] = pd.to_datetime(df["Timestamp"], errors="coerce")
 
-        # Drop internal columns
         df.drop(columns=["Timestamp", "shortcode"], errors="ignore", inplace=True)
 
-        # Reorder — name and contact first, then source info
-        desired_order = [
-            "Cafe Name", "Phone", "Email", "Username", "Source",
-            "URL", "Datetime", "Caption", "Bio"
-        ]
-        cols = [c for c in desired_order if c in df.columns]
+        cols = [c for c in columns if c in df.columns]
         df = df[cols]
-
-        # Summaries
-        source_counts = df["Source"].value_counts().reset_index()
-        source_counts.columns = ["Source", "Count"]
-
-        posts_with_phone = df["Phone"].notna() & (df["Phone"] != "")
-        posts_with_email = df["Email"].notna() & (df["Email"] != "")
-
-        summary_general = pd.DataFrame([
-            {"Metric": "Total Results", "Value": str(len(df))},
-            {"Metric": "Posts with Phone", "Value": str(posts_with_phone.sum())},
-            {"Metric": "Posts with Email", "Value": str(posts_with_email.sum())},
-            {"Metric": "Export Time", "Value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
-        ])
 
         with pd.ExcelWriter(filepath, engine="xlsxwriter") as writer:
             df.to_excel(writer, sheet_name="Data", index=False)
-            workbook = writer.book
-            worksheet = writer.sheets["Data"]
+            wb = writer.book
+            ws = writer.sheets["Data"]
 
-            header_fmt = workbook.add_format({
-                "bold": True,
-                "fg_color": "#4F81BD",
-                "font_color": "white",
-                "border": 1,
-            })
-            text_fmt = workbook.add_format({"text_wrap": True, "valign": "top"})
-            link_fmt = workbook.add_format({
-                "font_color": "blue",
-                "underline": True,
-                "valign": "top",
-            })
+            hdr = wb.add_format({"bold": True, "fg_color": "#4F81BD", "font_color": "white", "border": 1})
+            txt = wb.add_format({"text_wrap": True, "valign": "top"})
+            lnk = wb.add_format({"font_color": "blue", "underline": True, "valign": "top"})
 
-            for col_num, value in enumerate(df.columns.values):
-                worksheet.write(0, col_num, value, header_fmt)
+            for i, v in enumerate(df.columns):
+                ws.write(0, i, v, hdr)
 
-            # Column widths — keyed by column name
-            col_widths = {
-                "Cafe Name": 30,
-                "Phone": 18,
-                "Email": 30,
-                "Username": 20,
-                "Source": 25,
-                "URL": 45,
-                "Datetime": 20,
-                "Caption": 70,
-                "Bio": 50,
+            widths = {
+                "Cafe Name": 28, "Phone": 16, "Email": 26, "Address": 35,
+                "Username": 18, "Source": 22, "URL": 40, "Website/Link": 28,
+                "Datetime": 18, "Caption": 55, "Bio": 40,
             }
+            for i, c in enumerate(df.columns):
+                ws.set_column(i, i, widths.get(c, 18), lnk if c in ("URL", "Website/Link") else txt)
 
-            for col_num, col_name in enumerate(df.columns):
-                width = col_widths.get(col_name, 20)
-                fmt = link_fmt if col_name == "URL" else text_fmt
-                worksheet.set_column(col_num, col_num, width, fmt)
-
-            # Alternating row colors
-            row_fmts = [
-                workbook.add_format({"bg_color": "#FFFFFF", "valign": "top", "text_wrap": True}),
-                workbook.add_format({"bg_color": "#F2F2F2", "valign": "top", "text_wrap": True}),
+            alt = [
+                wb.add_format({"bg_color": "#FFFFFF", "valign": "top", "text_wrap": True}),
+                wb.add_format({"bg_color": "#F2F2F2", "valign": "top", "text_wrap": True}),
             ]
+            url_col = list(df.columns).index("URL") if "URL" in df.columns else -1
+            for r in range(1, len(df) + 1):
+                ws.set_row(r, 45, alt[r % 2])
+                if url_col >= 0:
+                    val = df.iloc[r - 1]["URL"]
+                    if pd.notna(val) and str(val).startswith("http"):
+                        ws.write_url(r, url_col, str(val), string=str(val))
 
-            for row_num in range(1, len(df) + 1):
-                fmt = row_fmts[row_num % 2]
-                worksheet.set_row(row_num, 50, fmt)
-
-                # Make URL column clickable
-                url_col_idx = list(df.columns).index("URL") if "URL" in df.columns else -1
-                if url_col_idx >= 0:
-                    url_val = df.iloc[row_num - 1]["URL"]
-                    if pd.notna(url_val):
-                        worksheet.write_url(row_num, url_col_idx, url_val, string=url_val)
-
-            # Summary sheet
-            summary_general.to_excel(writer, sheet_name="Summary", index=False, startrow=0)
-            source_counts.to_excel(writer, sheet_name="Summary", index=False, startrow=6)
-
-            summary_ws = writer.sheets["Summary"]
-            summary_ws.set_column("A:B", 25)
+            summary = pd.DataFrame([
+                {"Metric": "Total", "Value": str(len(df))},
+                {"Metric": "With Phone", "Value": str((df.get("Phone", pd.Series()).astype(str) != "").sum())},
+                {"Metric": "With Email", "Value": str((df.get("Email", pd.Series()).astype(str) != "").sum())},
+                {"Metric": "Exported", "Value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
+            ])
+            summary.to_excel(writer, sheet_name="Summary", index=False)
+            writer.sheets["Summary"].set_column("A:B", 20)
 
         logger.info("Saved %d results to %s", len(df), filepath)
         return True
 
     except Exception as e:
-        logger.error("Failed to save Excel file: %s", e)
+        logger.error("Excel save failed: %s", e)
         return False
