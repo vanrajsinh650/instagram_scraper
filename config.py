@@ -1,25 +1,26 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
 
 INSTAGRAM_CREDENTIALS = {
-    "username": os.getenv("INSTAGRAM_USERNAME"),
-    "password": os.getenv("INSTAGRAM_PASSWORD"),
+    "username": os.environ.get("INSTAGRAM_USERNAME", ""),
+    "password": os.environ.get("INSTAGRAM_PASSWORD", ""),
 }
 
-SCRAPE_MODE = "both"
+SCRAPE_MODE = os.environ.get("SCRAPE_MODE", os.environ.get("SCRAPE_MODE", "both"))
 
-SEARCH_QUERIES = [
+SEARCH_QUERIES = os.environ.get("SEARCH_QUERIES", [
     "new cafe ahmedabad",
     "cafe opening ahmedabad",
     "restaurant opening ahmedabad",
     "cafe coming soon ahmedabad",
     "sg highway cafe",
     "bopal cafe opening"
-]
+])
 
-HASHTAGS = [
+HASHTAGS = os.environ.get("HASHTAGS", [
     "newcafeahmedabad",
     "ahmedabadcafe",
     "cafeopeningsoon",
@@ -27,41 +28,29 @@ HASHTAGS = [
     "grandopeningahmedabad",
     "ahmedabadfoodie",
     "newrestaurantahmedabad",
-    "ahmedabadfoodblogger",
-    "ahmedabadfoodies",
-    "ahmedabadfoodlovers",
-    "ahmedabadfoodguide",
-    "ahmedabadfoodscene",
-    "ahmedabadfoodcrawl",
-    "ahmedabadfoodhunt",
-    "ahmedabadfoodlover",
-    "ahmedabadfoodiesquad",
-    "ahmedabadfoodiesclub",
-    "ahmedabadfoodiesgroup",
-    "ahmedabadfoodiescommunity",
-    "ahmedabadfoodiesnetwork",
-    "ahmedabadfood",
-]
+    "ahmedabadfoodblogger"
+])
 
-OPENING_KEYWORDS = [
+OPENING_KEYWORDS = os.environ.get("OPENING_KEYWORDS", [
     "opening soon", "coming soon", "grand opening", "soft launch",
     "now open", "newly opened", "just opened", "open soon",
     "launching soon", "new opening", "we are open", "newly launched",
     "grand launch", "opening shortly", "open now", "new cafe",
-]
+])
 
-LOCATION_KEYWORDS = [
+LOCATION_KEYWORDS = os.environ.get("LOCATION_KEYWORDS", [
     "ahmedabad", "amdavad", "sg highway", "prahlad nagar",
     "satellite", "navrangpura", "cg road", "bopal", "south bopal",
     "thaltej", "vejalpur", "vastrapur", "gota", "chandkheda",
     "maninagar", "paldi", "iscon",
-]
+])
 
-DAYS_LOOKBACK = 90
-MAX_POSTS_PER_SOURCE = 80
-REQUEST_TIMEOUT = 15
-OUTPUT_DIR = "output"
-OUTPUT_FILE = "new_cafe_ahmedabad.csv"
+DAYS_LOOKBACK = int(os.environ.get("DAYS_LOOKBACK", 90))
+MAX_POSTS_PER_SOURCE = int(os.environ.get("MAX_POSTS_PER_SOURCE", 80))
+REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", 15))
+
+OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "output")
+OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "new_cafe_ahmedabad.xlsx")
 
 HEADERS = {
     "User-Agent": (
@@ -75,4 +64,3 @@ HEADERS = {
     "Referer": "https://www.instagram.com/",
     "X-Requested-With": "XMLHttpRequest",
 }
-
