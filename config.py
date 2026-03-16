@@ -9,18 +9,32 @@ INSTAGRAM_CREDENTIALS = {
     "password": os.environ.get("INSTAGRAM_PASSWORD", ""),
 }
 
-SCRAPE_MODE = os.environ.get("SCRAPE_MODE", os.environ.get("SCRAPE_MODE", "both"))
+SCRAPE_MODE = os.environ.get("SCRAPE_MODE", "both")
 
-SEARCH_QUERIES = os.environ.get("SEARCH_QUERIES", [
+
+def _parse_list_env(key, default):
+    raw = os.environ.get(key)
+    if raw is None:
+        return default
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return parsed
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+SEARCH_QUERIES = _parse_list_env("SEARCH_QUERIES", [
     "new cafe ahmedabad",
     "cafe opening ahmedabad",
     "restaurant opening ahmedabad",
     "cafe coming soon ahmedabad",
     "sg highway cafe",
-    "bopal cafe opening"
+    "bopal cafe opening",
 ])
 
-HASHTAGS = os.environ.get("HASHTAGS", [
+HASHTAGS = _parse_list_env("HASHTAGS", [
     "newcafeahmedabad",
     "ahmedabadcafe",
     "cafeopeningsoon",
@@ -28,21 +42,23 @@ HASHTAGS = os.environ.get("HASHTAGS", [
     "grandopeningahmedabad",
     "ahmedabadfoodie",
     "newrestaurantahmedabad",
-    "ahmedabadfoodblogger"
+    "ahmedabadfoodblogger",
 ])
 
-OPENING_KEYWORDS = os.environ.get("OPENING_KEYWORDS", [
+OPENING_KEYWORDS = _parse_list_env("OPENING_KEYWORDS", [
     "opening soon", "coming soon", "grand opening", "soft launch",
     "now open", "newly opened", "just opened", "open soon",
     "launching soon", "new opening", "we are open", "newly launched",
     "grand launch", "opening shortly", "open now", "new cafe",
+    "new restaurant", "cafe launch", "restaurant launch",
 ])
 
-LOCATION_KEYWORDS = os.environ.get("LOCATION_KEYWORDS", [
+LOCATION_KEYWORDS = _parse_list_env("LOCATION_KEYWORDS", [
     "ahmedabad", "amdavad", "sg highway", "prahlad nagar",
     "satellite", "navrangpura", "cg road", "bopal", "south bopal",
     "thaltej", "vejalpur", "vastrapur", "gota", "chandkheda",
-    "maninagar", "paldi", "iscon",
+    "maninagar", "paldi", "iscon", "bodakdev", "ambli",
+    "science city", "drive in", "law garden", "ellisbridge",
 ])
 
 DAYS_LOOKBACK = int(os.environ.get("DAYS_LOOKBACK", 90))
@@ -52,7 +68,6 @@ REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", 15))
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "output")
 OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "new_cafe_ahmedabad.xlsx")
 
-# Playwright Browser Configuration
 HEADLESS = os.environ.get("HEADLESS", "false").lower() == "true"
 AUTH_STATE_PATH = os.environ.get("AUTH_STATE_PATH", "state.json")
 
